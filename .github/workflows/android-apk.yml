@@ -14,6 +14,10 @@ on:
       - '.github/workflows/android-apk.yml'
   workflow_dispatch:
 
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -45,10 +49,16 @@ jobs:
           gradle-version: '8.9'
 
       - name: Birim testlerini çalıştır
-        run: gradle -p apps/mobile-android testDebugUnitTest --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle -p apps/mobile-android testDebugUnitTest --stacktrace 2>&1 | tee apps/mobile-android/gradle-test.log
 
       - name: Debug APK oluştur
-        run: gradle -p apps/mobile-android assembleDebug --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          gradle -p apps/mobile-android assembleDebug --stacktrace 2>&1 | tee apps/mobile-android/gradle-apk.log
 
       - name: APK dosyasını yayımla
         uses: actions/upload-artifact@v4
@@ -57,3 +67,12 @@ jobs:
           path: apps/mobile-android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Gradle günlüklerini yayımla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-gradle-gunlukleri
+          path: apps/mobile-android/gradle-*.log
+          if-no-files-found: warn
+          retention-days: 7
