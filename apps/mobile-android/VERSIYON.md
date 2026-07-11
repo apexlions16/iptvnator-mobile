@@ -5,4 +5,6 @@
 - Kanal arama ve grup filtreleme
 - Kalıcı favoriler
 - Media3 tabanlı yayın oynatma
-- GitHub Actions üzerinden debug APK üretimi
+- GitHub Actions üzerinden test ve debug APK üretimi
+
+Bu sürüm taslak pull request üzerinde otomatik Android testinden geçirilir.
