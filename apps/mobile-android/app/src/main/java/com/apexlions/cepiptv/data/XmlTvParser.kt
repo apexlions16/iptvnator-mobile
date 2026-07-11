@@ -1,12 +1,14 @@
 package com.apexlions.cepiptv.data
 
 import com.apexlions.cepiptv.model.EpgSnapshot
-import org.xmlpull.v1.XmlPullParser
-import org.xmlpull.v1.XmlPullParserFactory
+import org.xml.sax.Attributes
+import org.xml.sax.InputSource
+import org.xml.sax.helpers.DefaultHandler
 import java.io.StringReader
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import javax.xml.parsers.SAXParserFactory
 
 object XmlTvParser {
     private data class Programme(
@@ -17,37 +19,72 @@ object XmlTvParser {
     )
 
     fun parse(content: String, nowMillis: Long = System.currentTimeMillis()): Map<String, EpgSnapshot> {
-        val parser = XmlPullParserFactory.newInstance().newPullParser().apply {
-            setInput(StringReader(content))
+        require(!content.contains("<!DOCTYPE", ignoreCase = true)) {
+            "Güvenlik nedeniyle DTD içeren XMLTV dosyaları desteklenmez."
         }
-        val programmes = mutableListOf<Programme>()
-        var event = parser.eventType
-        var channel = ""
-        var start = 0L
-        var end = 0L
-        var title: String? = null
+        require(!content.contains("<!ENTITY", ignoreCase = true)) {
+            "Güvenlik nedeniyle harici varlık içeren XMLTV dosyaları desteklenmez."
+        }
 
-        while (event != XmlPullParser.END_DOCUMENT) {
-            when (event) {
-                XmlPullParser.START_TAG -> when (parser.name) {
+        val programmes = mutableListOf<Programme>()
+        val handler = object : DefaultHandler() {
+            private var channel = ""
+            private var start = 0L
+            private var end = 0L
+            private var title: String? = null
+            private var readingTitle = false
+            private val text = StringBuilder()
+
+            override fun startElement(uri: String?, localName: String?, qName: String?, attributes: Attributes) {
+                when (elementName(localName, qName)) {
                     "programme" -> {
-                        channel = parser.getAttributeValue(null, "channel").orEmpty()
-                        start = parseXmlTvDate(parser.getAttributeValue(null, "start")) ?: 0L
-                        end = parseXmlTvDate(parser.getAttributeValue(null, "stop")) ?: 0L
+                        channel = attributes.getValue("channel").orEmpty()
+                        start = parseXmlTvDate(attributes.getValue("start")) ?: 0L
+                        end = parseXmlTvDate(attributes.getValue("stop")) ?: 0L
                         title = null
                     }
-                    "title" -> if (channel.isNotBlank()) title = parser.nextText().trim()
-                }
-                XmlPullParser.END_TAG -> if (parser.name == "programme") {
-                    val safeTitle = title?.takeIf(String::isNotBlank)
-                    if (channel.isNotBlank() && start > 0 && end > start && safeTitle != null) {
-                        programmes += Programme(channel, start, end, safeTitle)
+                    "title" -> if (channel.isNotBlank() && title == null) {
+                        readingTitle = true
+                        text.setLength(0)
                     }
-                    channel = ""
                 }
             }
-            event = parser.next()
+
+            override fun characters(ch: CharArray, start: Int, length: Int) {
+                if (readingTitle) text.append(ch, start, length)
+            }
+
+            override fun endElement(uri: String?, localName: String?, qName: String?) {
+                when (elementName(localName, qName)) {
+                    "title" -> if (readingTitle) {
+                        title = text.toString().trim().takeIf(String::isNotBlank)
+                        readingTitle = false
+                    }
+                    "programme" -> {
+                        val safeTitle = title
+                        if (channel.isNotBlank() && start > 0 && end > start && safeTitle != null) {
+                            programmes += Programme(channel, start, end, safeTitle)
+                        }
+                        channel = ""
+                        readingTitle = false
+                    }
+                }
+            }
         }
+
+        val factory = SAXParserFactory.newInstance().apply {
+            isNamespaceAware = false
+            isValidating = false
+        }
+        val reader = factory.newSAXParser().xmlReader
+        listOf(
+            "http://xml.org/sax/features/external-general-entities",
+            "http://xml.org/sax/features/external-parameter-entities",
+            "http://apache.org/xml/features/nonvalidating/load-external-dtd",
+        ).forEach { feature -> runCatching { reader.setFeature(feature, false) } }
+        reader.entityResolver = org.xml.sax.EntityResolver { _, _ -> InputSource(StringReader("")) }
+        reader.contentHandler = handler
+        reader.parse(InputSource(StringReader(content)))
 
         return programmes
             .groupBy(Programme::channel)
@@ -63,6 +100,9 @@ object XmlTvParser {
                 )
             }
     }
+
+    private fun elementName(localName: String?, qName: String?): String =
+        localName?.takeIf(String::isNotBlank) ?: qName.orEmpty()
 
     private fun parseXmlTvDate(raw: String?): Long? {
         if (raw.isNullOrBlank()) return null
