@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Cep IPTV</string>
+    <string name="app_slogan">M3U ve M3U8 yayınlarını mobilde izle</string>
+    <string name="playlist_url">Oynatma listesi adresi</string>
+    <string name="playlist_url_hint">https://ornek.com/liste.m3u</string>
+    <string name="load_from_url">Adresten yükle</string>
+    <string name="load_from_file">Dosyadan seç</string>
+    <string name="loading">Yükleniyor…</string>
+    <string name="channels">Kanallar</string>
+    <string name="channel_count">%1$d kanal</string>
+    <string name="search_channel">Kanal ara</string>
+    <string name="all_channels">Tümü</string>
+    <string name="favorites">Favoriler</string>
+    <string name="groups">Gruplar</string>
+    <string name="no_channels">Gösterilecek kanal bulunamadı.</string>
+    <string name="no_favorites">Henüz favori kanal eklenmedi.</string>
+    <string name="add_favorite">Favorilere ekle</string>
+    <string name="remove_favorite">Favorilerden çıkar</string>
+    <string name="play_channel">Kanalı oynat</string>
+    <string name="back">Geri</string>
+    <string name="stop">Durdur</string>
+    <string name="retry">Yeniden dene</string>
+    <string name="clear_list">Listeyi temizle</string>
+    <string name="playlist_loaded">Oynatma listesi yüklendi.</string>
+    <string name="invalid_url">Geçerli bir http veya https adresi girin.</string>
+    <string name="download_failed">Oynatma listesi indirilemedi.</string>
+    <string name="file_read_failed">Seçilen dosya okunamadı.</string>
+    <string name="parse_failed">Listede oynatılabilir kanal bulunamadı.</string>
+    <string name="playback_error">Yayın oynatılamadı. Bağlantıyı ve yayın adresini denetleyin.</string>
+    <string name="network_note">Not: Bazı IPTV sağlayıcıları şifresiz HTTP bağlantısı kullanır. Uygulama bu bağlantılara izin verir.</string>
+    <string name="legal_note">Cep IPTV herhangi bir kanal, liste veya dijital içerik sağlamaz. Yalnızca kullanıcının eklediği adresleri oynatır.</string>
+    <string name="source_note">IPTVnator projesinin ürün alanı ve MIT lisanslı mimarisi incelenerek Android için bağımsız olarak geliştirilmiştir.</string>
+</resources>
