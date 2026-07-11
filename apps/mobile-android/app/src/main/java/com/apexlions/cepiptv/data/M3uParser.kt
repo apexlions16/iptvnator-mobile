@@ -1,17 +1,22 @@
 package com.apexlions.cepiptv.data
 
-import com.apexlions.cepiptv.model.Channel
+import com.apexlions.cepiptv.model.MediaEntry
+import com.apexlions.cepiptv.model.MediaKind
 
 object M3uParser {
     private val attributePattern = Regex("([A-Za-z0-9_-]+)=\"([^\"]*)\"")
 
-    fun parse(content: String): List<Channel> {
+    fun parse(
+        content: String,
+        sourceKey: String = "m3u",
+        userAgent: String? = null,
+    ): List<MediaEntry> {
         val lines = content.lineSequence()
             .map(String::trim)
             .filter(String::isNotEmpty)
             .toList()
 
-        val channels = mutableListOf<Channel>()
+        val entries = mutableListOf<MediaEntry>()
         var pendingInfo: String? = null
 
         for (line in lines) {
@@ -37,20 +42,27 @@ object M3uParser {
                     val group = attributes["group-title"]
                         ?.takeIf(String::isNotBlank)
                         ?: "Diğer"
-                    val logo = attributes["tvg-logo"]
-                        ?.takeIf(String::isNotBlank)
+                    val radio = attributes["radio"].equals("true", ignoreCase = true) ||
+                        group.contains("radyo", ignoreCase = true) ||
+                        group.contains("radio", ignoreCase = true)
 
-                    channels += Channel(
+                    entries += MediaEntry(
+                        sourceKey = sourceKey,
+                        externalId = line,
                         name = name,
                         url = line,
                         group = group,
-                        logoUrl = logo,
+                        logoUrl = attributes["tvg-logo"]?.takeIf(String::isNotBlank),
+                        kind = if (radio) MediaKind.RADIO else MediaKind.LIVE,
+                        epgId = attributes["tvg-id"]?.takeIf(String::isNotBlank)
+                            ?: attributes["tvg-name"]?.takeIf(String::isNotBlank),
+                        userAgent = userAgent?.takeIf(String::isNotBlank),
                     )
                     pendingInfo = null
                 }
             }
         }
 
-        return channels.distinctBy(Channel::url)
+        return entries.distinctBy { it.url }
     }
 }
