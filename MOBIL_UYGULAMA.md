@@ -2,7 +2,7 @@
 
 ## İncelenen yapı
 
-Kaynak ve hedef depoların `master` dalları aynı commit üzerindedir. Proje aşağıdaki ana katmanlardan oluşan bir Nx monoreposudur:
+Kaynak ve hedef depoların başlangıçtaki `master` dalları aynı commit üzerindeydi. Proje aşağıdaki ana katmanlardan oluşan bir Nx monoreposudur:
 
 - `apps/web`: Angular tabanlı kullanıcı arayüzü ve PWA hedefi
 - `apps/electron-backend`: masaüstü Electron süreçleri, yerel dosya ve ağ entegrasyonları
@@ -18,28 +18,64 @@ Kaynak uygulama Angular 21, Nx 22, Electron 41, NgRx, HLS.js, Video.js ve M3U/EP
 
 ## Mobil strateji
 
-Electron süreçlerini Android'e doğrudan taşımak yerine, kaynak ürünün temel kullanım akışları Android'in yerel yetenekleriyle yeniden uygulanmıştır. Bunun nedenleri:
+Electron süreçlerini Android'e doğrudan taşımak yerine, kaynak ürünün mobilde anlamlı kullanım akışları Android'in yerel yetenekleriyle yeniden uygulanmıştır. Bunun nedenleri:
 
 1. Electron masaüstü IPC ve dosya sistemi API'leri Android'de kullanılamaz.
-2. Web video oynatıcıları yerine Android Media3 daha kararlı arka plan, codec ve HLS desteği sağlar.
+2. Web video oynatıcıları yerine Android Media3 cihaz codec, HLS ve yaşam döngüsü entegrasyonu sağlar.
 3. Android belge seçici, kullanıcıdan geniş depolama izni istemeden M3U dosyası açabilir.
 4. Bağımsız modül, mevcut masaüstü ve web derlemelerini etkilemez.
+5. Masaüstü süreç başlatma özelliklerinin mobil karşılığı harici süreç değil, yerel oynatıcı ve uygulama durumudur.
 
 ## Uygulanan özellikler
 
+### Kaynaklar ve kataloglar
+
 - Yerel Android uygulama modülü: `apps/mobile-android`
-- Türkçe varsayılan kullanıcı arayüzü
 - URL ve cihaz dosyası üzerinden M3U/M3U8 içe aktarma
-- `tvg-name`, `tvg-logo` ve `group-title` özniteliklerini ayrıştırma
+- `tvg-name`, `tvg-logo`, `tvg-id`, `group-title` ve `radio` özniteliklerini ayrıştırma
 - Yinelenen yayın adreslerini temizleme
-- Kanal arama ve grup filtreleme
-- Cihazda kalıcı favoriler
+- Özel M3U User-Agent
+- Uygulama açılışında M3U otomatik yenileme
+- XMLTV üzerinden EPG yükleme
+- Xtream Codes hesap doğrulama
+- Xtream canlı TV, radyo, film, dizi, sezon ve bölüm katalogları
+- Stalker / Ministra el sıkışma, tür, kanal ve `create_link` oynatma bağlantısı çözümleme
+
+### Mobil kullanıcı deneyimi
+
+- Türkçe varsayılan kullanıcı arayüzü
+- Canlı TV, radyo, film, dizi ve bölüm türlerine göre filtreleme
+- Kanal, içerik ve grup araması
+- Grup filtreleme
+- Tüm kaynaklarda kalıcı favoriler
+- Son izlenenler
+- Film ve bölümlerde kaldığı yerden devam
+- Geçerli ve sonraki EPG programının kanal kartında gösterilmesi
 - Media3/ExoPlayer tabanlı yayın oynatma
-- Kanal logoları ve mobil kart görünümü
+- Kaynağa özel User-Agent ile oynatma
+- Kanal ve içerik logoları
 - Açık/koyu tema uyumu
-- Türkçe hata, bilgilendirme ve yasal metinler
+- Türkçe hata, bilgilendirme, güvenlik ve yasal metinler
+
+### Güvenlik ve kalite
+
+- Xtream parolası ve Stalker MAC bilgisi kalıcı depolamaya yazılmaz.
+- Genel depolama izni yerine Android belge sağlayıcısı kullanılır.
+- Bazı IPTV kaynakları nedeniyle HTTP trafiğine izin verilir; arayüzde HTTPS önerilir.
 - M3U ayrıştırıcı birim testleri
-- GitHub Actions ile test ve debug APK artifact üretimi
+- GitHub Actions ile birim test, debug APK ve hata günlüğü artifact üretimi
+
+## Mobil kapsam farkları
+
+Aşağıdaki özellikler masaüstü işletim sistemi süreçlerine veya pencere entegrasyonuna bağlı olduğundan Android'e birebir taşınmamıştır:
+
+- Gömülü MPV pencere entegrasyonu
+- Harici MPV, VLC ve IINA süreç yönetimi
+- Masaüstü klavye kısayolları ve komut paleti
+- Masaüstü indirme yöneticisi
+- Electron uzaktan kumanda süreci ve masaüstü otomatik güncelleyici
+
+Mobil karşılık olarak Media3 oynatıcı, Android yaşam döngüsü, dokunmatik filtreler, izleme geçmişi ve VOD devam konumu uygulanmıştır.
 
 ## Marka kararı
 
@@ -53,8 +89,13 @@ GitHub Actions başarılı olduğunda APK şu artifact içinde yayımlanır:
 cep-iptv-debug-apk/app-debug.apk
 ```
 
-Bu APK test ve doğrudan kurulum içindir. Mağaza dağıtımı için imzalı release APK/AAB, gizli keystore bilgileri ve mağaza politikası kontrolleri ayrıca yapılandırılmalıdır.
+Doğrulanmış Android 1.1.0 debug paketi:
 
-## Sonraki genişletmeler
+- Paket: `com.apexlions.cepiptv.debug`
+- Sürüm: `1.1.0-debug`
+- Sürüm kodu: `2`
+- Minimum SDK: `24`
+- Hedef / derleme SDK: `35`
+- İmza: APK Signature Scheme v2
 
-Mevcut ilk mobil sürüm M3U/M3U8 odaklıdır. Kaynak projedeki EPG, Xtream Codes ve Stalker portal özellikleri daha sonraki mobil aşamalarda ayrı veri kaynakları olarak eklenebilir. Bu özellikler için kimlik bilgisi saklama, SSL/HTTP politikası, büyük liste sayfalama ve cihaz codec testleri ayrıca ele alınmalıdır.
+Bu APK test ve doğrudan kurulum içindir. Mağaza dağıtımı için gizli Android keystore ile imzalı release APK/AAB ve mağaza politikası kontrolleri ayrıca yapılandırılmalıdır.
