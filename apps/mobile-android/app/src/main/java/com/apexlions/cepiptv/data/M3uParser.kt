@@ -22,7 +22,7 @@ object M3uParser {
                     line.startsWith("https://", ignoreCase = true) -> {
                     val info = pendingInfo
                     val attributes = info
-                        ?.let(attributePattern::findAll)
+                        ?.let { attributePattern.findAll(it) }
                         ?.associate { match -> match.groupValues[1].lowercase() to match.groupValues[2] }
                         .orEmpty()
 
